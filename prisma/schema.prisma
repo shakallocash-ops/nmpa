@@ -1,0 +1,289 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Zone {
+  A
+  B
+  C
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum SettlementType {
+  NOMADIC
+  SEMI_NOMADIC
+  SETTLED
+}
+
+enum InterviewStatus {
+  COMPLETED
+  NO_HOUSEHOLD_MEMBER_HOME
+  POSTPONED
+  EXTENDED_ABSENCE
+  REFUSED
+  DWELLING_NOT_FOUND
+  DWELLING_DESTROYED
+  OTHER
+}
+
+enum LivestockType {
+  CATTLE
+  SHEEP
+  GOAT
+  CAMEL
+  CHICKEN
+  OTHER
+}
+
+enum SchoolStatus {
+  VIABLE
+  NON_VIABLE
+  NOT_ASSESSED
+}
+
+enum ConflictStatus {
+  PENDING
+  IN_MEDIATION
+  RESOLVED
+  ESCALATED
+}
+
+enum CommitteeRole {
+  ARDO
+  WAKILI
+  CHAIRMAN
+  VICE_CHAIRMAN
+  SECRETARY
+  YOUTH_LEADER
+  WOMEN_LEADER
+  TREASURER
+  PRO
+  LEGAL_ADVISER
+  MEMBER
+}
+
+enum CommitteeType {
+  THIRTY_MAN
+  PEACE
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  COMMISSIONER
+  PERM_SECRETARY
+  DIRECTOR
+  CONTENT_EDITOR
+  VIEWER
+  ENUMERATOR
+}
+
+enum ProjectType {
+  SOLAR_BOREHOLE
+  SCHOOL_RENOVATION
+  PEACE_RALLY
+  DAIRY_CENTER
+  RANCH
+}
+
+enum ProjectStatus {
+  PLANNING
+  ONGOING
+  COMPLETED
+}
+
+model LGA {
+  id               String            @id @default(cuid())
+  name             String            @unique
+  zone             Zone
+  createdAt        DateTime          @default(now())
+  households       Household[]
+  schools          NomadicSchool[]
+  conflictCases    ConflictCase[]
+  committeeMembers CommitteeMember[]
+  users            User[]
+  projects         Project[]
+
+  @@index([zone])
+}
+
+model Household {
+  id              String          @id @default(cuid())
+  lgaId           String
+  ward            String
+  communityName   String
+  headName        String
+  headAge         Int
+  headGender      Gender
+  phone           String?
+  nin             String?
+  gpsCoordinates  String
+  settlementType  SettlementType
+  interviewStatus InterviewStatus
+  enumeratorId    String
+  supervisorId    String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  lga             LGA             @relation(fields: [lgaId], references: [id], onDelete: Restrict)
+  enumerator      User            @relation("EnumeratedHouseholds", fields: [enumeratorId], references: [id], onDelete: Restrict)
+  supervisor      User?           @relation("SupervisedHouseholds", fields: [supervisorId], references: [id], onDelete: SetNull)
+  livestock       Livestock[]
+
+  @@index([lgaId, ward])
+  @@index([communityName])
+  @@index([enumeratorId])
+  @@index([supervisorId])
+}
+
+model Livestock {
+  id          String        @id @default(cuid())
+  householdId String
+  type        LivestockType
+  count       Int
+  createdAt   DateTime      @default(now())
+  household   Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@unique([householdId, type])
+  @@index([type])
+}
+
+model NomadicSchool {
+  id                      String       @id @default(cuid())
+  name                    String
+  lgaId                   String
+  location                String
+  status                  SchoolStatus @default(NOT_ASSESSED)
+  teacherCountMale        Int          @default(0)
+  teacherCountFemale      Int          @default(0)
+  studentEnrollmentMale   Int          @default(0)
+  studentEnrollmentFemale Int          @default(0)
+  classroomGood           Int          @default(0)
+  classroomBad            Int          @default(0)
+  hasSolar                Boolean      @default(false)
+  hasBorehole             Boolean      @default(false)
+  lastInspectionDate      DateTime?
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+  lga                     LGA          @relation(fields: [lgaId], references: [id], onDelete: Restrict)
+
+  @@index([lgaId, status])
+  @@index([name])
+}
+
+model ConflictCase {
+  id                 String         @id @default(cuid())
+  title              String
+  description        String
+  lgaId              String
+  location           String
+  dateReported       DateTime
+  status             ConflictStatus @default(PENDING)
+  rootCause          String?
+  resolutionDetails  String?
+  compensationAmount Decimal?       @db.Decimal(18, 2)
+  partiesInvolved    Json
+  resolvedById       String?
+  resolvedAt         DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  lga                LGA            @relation(fields: [lgaId], references: [id], onDelete: Restrict)
+  resolvedBy         User?          @relation("ResolvedConflicts", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([lgaId, status])
+  @@index([dateReported])
+  @@index([resolvedById])
+}
+
+model CommitteeMember {
+  id            String        @id @default(cuid())
+  name          String
+  phone         String?
+  lgaId         String
+  role          CommitteeRole
+  committeeType CommitteeType
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  lga           LGA           @relation(fields: [lgaId], references: [id], onDelete: Restrict)
+
+  @@index([lgaId, committeeType, isActive])
+}
+
+model User {
+  id                   String         @id @default(cuid())
+  name                 String
+  email                String         @unique
+  passwordHash         String
+  role                 UserRole
+  department           String?
+  phone                String?
+  lgaId                String?
+  lastLogin            DateTime?
+  isActive             Boolean        @default(true)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  lga                  LGA?           @relation(fields: [lgaId], references: [id], onDelete: SetNull)
+  auditLogs            AuditLog[]
+  enumeratedHouseholds Household[]    @relation("EnumeratedHouseholds")
+  supervisedHouseholds Household[]    @relation("SupervisedHouseholds")
+  resolvedConflicts    ConflictCase[] @relation("ResolvedConflicts")
+
+  @@index([role, isActive])
+  @@index([lgaId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String?
+  changes    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+}
+
+model Project {
+  id           String        @id @default(cuid())
+  title        String
+  description  String
+  lgaId        String
+  type         ProjectType
+  budget       Decimal?      @db.Decimal(18, 2)
+  status       ProjectStatus @default(PLANNING)
+  startDate    DateTime?
+  endDate      DateTime?
+  impactReport String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  lga          LGA           @relation(fields: [lgaId], references: [id], onDelete: Restrict)
+
+  @@index([lgaId, status])
+  @@index([type])
+}
+
+model ContactInquiry {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  status    String   @default("NEW")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
