@@ -26,10 +26,9 @@ export const ministry = {
   email: "info@nomadicafairs.nigerstate.gov.ng",
   phone: "+234 (0) 70 0000 0000",
   social: {
-    twitter: "https://twitter.com",
-    facebook: "https://facebook.com",
-    instagram: "https://instagram.com",
-    youtube: "https://youtube.com"
+    facebook: "https://www.facebook.com/share/14kamX4DFUi/",
+    tiktok: "https://www.tiktok.com/@normadic_pastorals_ngs",
+    youtube: "https://youtube.com/@normadicandpastoralist"
   }
 };
 

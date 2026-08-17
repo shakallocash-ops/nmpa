@@ -2,8 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Clock, Mail, MapPin } from "lucide-react";
 import {
   FacebookIcon,
-  InstagramIcon,
-  TwitterIcon,
+  TiktokIcon,
   YoutubeIcon
 } from "@/components/public/BrandIcons";
 import { PageHero } from "@/components/public/PageHero";
@@ -25,9 +24,8 @@ export async function generateMetadata({
 }
 
 const socials = [
-  { href: ministry.social.twitter, label: "X (Twitter)", Icon: TwitterIcon },
   { href: ministry.social.facebook, label: "Facebook", Icon: FacebookIcon },
-  { href: ministry.social.instagram, label: "Instagram", Icon: InstagramIcon },
+  { href: ministry.social.tiktok, label: "TikTok", Icon: TiktokIcon },
   { href: ministry.social.youtube, label: "YouTube", Icon: YoutubeIcon }
 ];
 

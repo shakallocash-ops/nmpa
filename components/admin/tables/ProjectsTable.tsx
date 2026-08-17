@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { deleteProject } from "@/actions/projects";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { ProjectPhotoDialog } from "@/components/admin/ProjectPhotoDialog";
 import { ProjectForm, type ProjectRecord } from "@/components/admin/forms/ProjectForm";
 import { DataTable, sortableHeader } from "@/components/admin/tables/DataTable";
 import { Badge } from "@/components/ui/badge";
@@ -39,17 +40,20 @@ function statusBadge(status: ProjectStatus) {
 export function ProjectsTable({
   data,
   lgas,
+  images = {},
   canWrite,
   canDelete
 }: {
   data: ProjectRow[];
   lgas: Array<{ id: string; name: string }>;
+  images?: Record<string, string>;
   canWrite: boolean;
   canDelete: boolean;
 }) {
   const router = useRouter();
   const [lgaId, setLgaId] = useState("");
   const [editor, setEditor] = useState<ProjectRow | "new" | null>(null);
+  const [photoTarget, setPhotoTarget] = useState<ProjectRow | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ProjectRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -106,6 +110,15 @@ export function ProjectsTable({
             {canWrite ? (
               <Button size="sm" variant="outline" onClick={() => setEditor(row.original)}>
                 Edit
+              </Button>
+            ) : null}
+            {canWrite ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setPhotoTarget(row.original)}
+              >
+                Photo
               </Button>
             ) : null}
             {canDelete ? (
@@ -195,6 +208,15 @@ export function ProjectsTable({
           ) : null}
         </DialogContent>
       </Dialog>
+      {photoTarget ? (
+        <ProjectPhotoDialog
+          projectId={photoTarget.id}
+          projectTitle={photoTarget.title}
+          currentUrl={images[photoTarget.id] ?? null}
+          open
+          onOpenChange={(open) => !open && setPhotoTarget(null)}
+        />
+      ) : null}
       <ConfirmDialog
         open={Boolean(pendingDelete)}
         title="Delete project"

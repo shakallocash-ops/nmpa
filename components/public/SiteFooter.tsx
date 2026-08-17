@@ -6,8 +6,7 @@ import { Mail, MapPin } from "lucide-react";
 import { MinistryMark } from "@/components/public/MinistryMark";
 import {
   FacebookIcon,
-  InstagramIcon,
-  TwitterIcon,
+  TiktokIcon,
   YoutubeIcon
 } from "@/components/public/BrandIcons";
 import { Link } from "@/i18n/navigation";
@@ -116,19 +115,14 @@ export function SiteFooter({ logoUrl }: { logoUrl?: string | null }) {
           <div className="flex items-center gap-3">
             {[
               {
-                href: ministry.social.twitter,
-                label: "X (Twitter)",
-                Icon: TwitterIcon
-              },
-              {
                 href: ministry.social.facebook,
                 label: "Facebook",
                 Icon: FacebookIcon
               },
               {
-                href: ministry.social.instagram,
-                label: "Instagram",
-                Icon: InstagramIcon
+                href: ministry.social.tiktok,
+                label: "TikTok",
+                Icon: TiktokIcon
               },
               {
                 href: ministry.social.youtube,
@@ -139,6 +133,8 @@ export function SiteFooter({ logoUrl }: { logoUrl?: string | null }) {
               <a
                 key={label}
                 href={href}
+                target="_blank"
+                rel="noreferrer"
                 aria-label={label}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-btn border border-white/20 text-white/80 transition-colors hover:border-accent hover:text-accent"
               >

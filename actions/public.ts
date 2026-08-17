@@ -3,6 +3,7 @@
 import { ConflictStatus, Prisma } from "@prisma/client";
 import { prisma, withDbRetry } from "@/lib/prisma";
 import { getBranding } from "@/lib/branding";
+import { getProjectImages } from "@/lib/project-images";
 import { rememberPublic } from "@/lib/public-cache";
 import { serialize } from "@/lib/serialize";
 import { NIGER_LGAS } from "@/lib/geo/niger-lgas";
@@ -293,13 +294,27 @@ export async function getPublicProjects(): Promise<PublicProject[]> {
     FEATURED_PROJECTS
   );
 
-  // Admin-uploaded default photo replaces the stock type-based image on
-  // any project that has no photo of its own.
-  const { projectDefaultUrl } = await getBranding();
-  if (!projectDefaultUrl) return projects;
+  // Admin uploads win: a photo uploaded for the specific project comes
+  // first, then the admin default photo for projects without one, then the
+  // stock type-based image.
+  const [{ projectDefaultUrl }, projectImages] = await Promise.all([
+    getBranding(),
+    getProjectImages()
+  ]);
+  if (!projectDefaultUrl && Object.keys(projectImages).length === 0) {
+    return projects;
+  }
   return projects.map((project) => {
+    const uploaded = projectImages[project.id];
+    if (uploaded) {
+      return {
+        ...project,
+        image: uploaded,
+        gallery: [uploaded, ...project.gallery.filter((url) => url !== uploaded)]
+      };
+    }
     const stock = projectImageForType(project.typeKey);
-    if (project.image !== stock) return project;
+    if (!projectDefaultUrl || project.image !== stock) return project;
     return {
       ...project,
       image: projectDefaultUrl,
