@@ -46,7 +46,9 @@ export async function loadDashboardStats() {
       conflictsResolved,
       livestock,
       activeProjects,
-      schoolGroups,
+      viableSchools,
+      nonViableSchools,
+      notAssessedSchools,
       resolvedConflicts,
       livestockRows
     ] = await prisma.$transaction([
@@ -60,10 +62,10 @@ export async function loadDashboardStats() {
       prisma.project.count({
         where: { status: { in: ["PLANNING", "ONGOING"] } }
       }),
-      prisma.nomadicSchool.groupBy({
-        by: ["status"],
-        _count: { _all: true },
-        orderBy: { status: "asc" }
+      prisma.nomadicSchool.count({ where: { status: SchoolStatus.VIABLE } }),
+      prisma.nomadicSchool.count({ where: { status: SchoolStatus.NON_VIABLE } }),
+      prisma.nomadicSchool.count({
+        where: { status: SchoolStatus.NOT_ASSESSED }
       }),
       prisma.conflictCase.findMany({
         where: { status: ConflictStatus.RESOLVED },
@@ -84,11 +86,6 @@ export async function loadDashboardStats() {
       .map((row) => ({ lga: row.lga, count: Number(row.count) }))
       .filter((row) => row.count > 0);
 
-    const viabilityLookup = new Map<SchoolStatus, number>();
-    for (const school of schoolGroups) {
-      viabilityLookup.set(school.status, school._count?._all ?? 0);
-    }
-
     const resolvedByMonth = new Map<string, number>();
     for (const item of resolvedConflicts) {
       const date = item.resolvedAt ?? item.dateReported;
@@ -105,21 +102,9 @@ export async function loadDashboardStats() {
       activeProjects,
       livestockByLga,
       schoolViability: [
-        {
-          name: "Viable",
-          value: viabilityLookup.get(SchoolStatus.VIABLE) ?? 0,
-          fill: "#22c55e"
-        },
-        {
-          name: "Non-Viable",
-          value: viabilityLookup.get(SchoolStatus.NON_VIABLE) ?? 0,
-          fill: "#ef4444"
-        },
-        {
-          name: "Not assessed",
-          value: viabilityLookup.get(SchoolStatus.NOT_ASSESSED) ?? 0,
-          fill: "#64748b"
-        }
+        { name: "Viable", value: viableSchools, fill: "#22c55e" },
+        { name: "Non-Viable", value: nonViableSchools, fill: "#ef4444" },
+        { name: "Not assessed", value: notAssessedSchools, fill: "#64748b" }
       ].filter((slice) => slice.value > 0),
       conflictsByMonth: lastTwelveMonths().map((month) => ({
         month: month.label,
