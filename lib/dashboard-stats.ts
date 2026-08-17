@@ -86,7 +86,7 @@ export async function loadDashboardStats() {
 
     const viabilityLookup = new Map<SchoolStatus, number>();
     for (const school of schoolGroups) {
-      viabilityLookup.set(school.status, school._count._all);
+      viabilityLookup.set(school.status, school._count?._all ?? 0);
     }
 
     const resolvedByMonth = new Map<string, number>();
