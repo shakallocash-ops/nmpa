@@ -16,7 +16,7 @@ export default async function PublicLayout({
   }
 
   const t = await getTranslations("nav");
-  const { logoUrl } = getBranding();
+  const { logoUrl } = await getBranding();
 
   return (
     <>

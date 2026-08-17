@@ -1,23 +1,82 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
+import { list } from "@vercel/blob";
+
+export type BrandingSlot = "logo" | "hero";
 
 export type Branding = {
   logoUrl: string | null;
+  heroUrl: string | null;
   updatedAt: string | null;
 };
+
+const empty: Branding = { logoUrl: null, heroUrl: null, updatedAt: null };
+
+/**
+ * On Vercel the filesystem is read-only, so uploads live in Vercel Blob
+ * storage (requires BLOB_READ_WRITE_TOKEN). Locally we fall back to
+ * public/uploads + data/branding.json so the CMS works without any cloud
+ * setup.
+ */
+export function usingBlobStorage() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+export const BLOB_PREFIX = "site/";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_PATH = path.join(DATA_DIR, "branding.json");
 export const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
-const empty: Branding = { logoUrl: null, updatedAt: null };
+// Short-lived memory cache so public renders don't hit the Blob API on
+// every request. Uploads reset it via bustBrandingCache().
+let cached: { value: Branding; at: number } | null = null;
+const CACHE_MS = 10_000;
 
-export function getBranding(): Branding {
+export function bustBrandingCache() {
+  cached = null;
+}
+
+async function getBlobBranding(): Promise<Branding> {
+  if (cached && Date.now() - cached.at < CACHE_MS) return cached.value;
+  try {
+    const { blobs } = await list({ prefix: BLOB_PREFIX });
+    const newest = (slot: BrandingSlot) =>
+      blobs
+        .filter((b) => b.pathname.startsWith(`${BLOB_PREFIX}${slot}-`))
+        .sort(
+          (a, b) =>
+            new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+        )[0] ?? null;
+
+    const logo = newest("logo");
+    const hero = newest("hero");
+    const value: Branding = {
+      logoUrl: logo?.url ?? null,
+      heroUrl: hero?.url ?? null,
+      updatedAt: (logo ?? hero)
+        ? new Date(
+            Math.max(
+              logo ? new Date(logo.uploadedAt).getTime() : 0,
+              hero ? new Date(hero.uploadedAt).getTime() : 0
+            )
+          ).toISOString()
+        : null
+    };
+    cached = { value, at: Date.now() };
+    return value;
+  } catch {
+    return cached?.value ?? empty;
+  }
+}
+
+function getLocalBranding(): Branding {
   try {
     if (!existsSync(DATA_PATH)) return empty;
-    const parsed = JSON.parse(readFileSync(DATA_PATH, "utf8")) as Branding;
+    const parsed = JSON.parse(readFileSync(DATA_PATH, "utf8")) as Partial<Branding>;
     return {
       logoUrl: parsed.logoUrl ?? null,
+      heroUrl: parsed.heroUrl ?? null,
       updatedAt: parsed.updatedAt ?? null
     };
   } catch {
@@ -25,9 +84,13 @@ export function getBranding(): Branding {
   }
 }
 
-export function saveBranding(next: Branding) {
+export async function getBranding(): Promise<Branding> {
+  if (usingBlobStorage()) return getBlobBranding();
+  return getLocalBranding();
+}
+
+export function saveLocalBranding(next: Branding) {
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true });
   writeFileSync(DATA_PATH, JSON.stringify(next, null, 2), "utf8");
 }
 

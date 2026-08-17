@@ -1,17 +1,20 @@
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
+import { getBranding } from "@/lib/branding";
 import { IMAGES } from "@/lib/content/images";
 
 export async function Hero() {
   const t = await getTranslations("home.hero");
   const gov = await getTranslations("gov");
+  const branding = await getBranding();
+  const heroImage = branding.heroUrl ?? IMAGES.hero;
 
   return (
     <section className="relative isolate overflow-hidden bg-primary">
       <div
         className="absolute inset-0 bg-cover bg-center opacity-30"
-        style={{ backgroundImage: `url(${IMAGES.hero})` }}
+        style={{ backgroundImage: `url(${heroImage})` }}
         aria-hidden="true"
       />
       <div

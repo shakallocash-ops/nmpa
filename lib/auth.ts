@@ -18,9 +18,11 @@ export interface AuthSession {
 }
 
 function getSecret() {
-  const secret = process.env.AUTH_SECRET;
+  const secret = process.env.AUTH_SECRET?.trim();
   if (!secret || secret.length < 32) {
-    throw new Error("AUTH_SECRET must contain at least 32 characters.");
+    throw new Error(
+      `AUTH_SECRET must contain at least 32 characters (Vercel currently has ${secret?.length ?? 0}). Add AUTH_SECRET in Project Settings → Environment Variables for Production, then Redeploy.`
+    );
   }
   return new TextEncoder().encode(secret);
 }

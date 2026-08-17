@@ -7,11 +7,15 @@ const nextConfig = {
   images: {
     unoptimized: true,
     remotePatterns: [
-      { protocol: "https", hostname: "images.unsplash.com" }
+      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" }
     ]
   },
   experimental: {
-    optimizePackageImports: ["lucide-react"]
+    optimizePackageImports: ["lucide-react"],
+    serverActions: {
+      bodySizeLimit: "10mb"
+    }
   },
   webpack: (config) => {
     config.resolve.alias.canvas = false;
