@@ -62,7 +62,8 @@ export async function loadDashboardStats() {
       }),
       prisma.nomadicSchool.groupBy({
         by: ["status"],
-        _count: { _all: true }
+        _count: { _all: true },
+        orderBy: { status: "asc" }
       }),
       prisma.conflictCase.findMany({
         where: { status: ConflictStatus.RESOLVED },
