@@ -8,6 +8,10 @@ dist/
 build/
 
 
+
+
+
+
 .vercel/
 
 # Environment files - NEVER commit secrets
