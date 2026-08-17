@@ -6,6 +6,8 @@ node_modules/
 out/
 dist/
 build/
+
+
 .vercel/
 
 # Environment files - NEVER commit secrets
