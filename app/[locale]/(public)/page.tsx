@@ -22,6 +22,7 @@ import { Link } from "@/i18n/navigation";
 import { isLocale } from "@/i18n/config";
 import { ministry } from "@/lib/content/ministry";
 import { IMAGES } from "@/lib/content/images";
+import { getBranding } from "@/lib/branding";
 import { getPublicProjects, getPublicStats } from "@/actions/public";
 import {
   getLocalisedDepartments,
@@ -62,14 +63,15 @@ export default async function HomePage({
 }) {
   if (isLocale(locale)) setRequestLocale(locale);
 
-  const [stats, allProjects, mandates, departments, formatters, news] =
+  const [stats, allProjects, mandates, departments, formatters, news, branding] =
     await Promise.all([
       getPublicStats(),
       getPublicProjects(),
       getLocalisedMandates(),
       getLocalisedDepartments(),
       getFormatters(),
-      getLocalisedNewsPosts()
+      getLocalisedNewsPosts(),
+      getBranding()
     ]);
   const localisedProjects = await localiseProjects(allProjects);
 
@@ -106,7 +108,7 @@ export default async function HomePage({
             <Reveal>
               <div className="relative aspect-[4/3] overflow-hidden rounded-card">
                 <Image
-                  src={IMAGES.cattle}
+                  src={branding.homeAboutUrl ?? IMAGES.cattle}
                   alt={t("intro.imageAlt")}
                   fill
                   className="object-cover"

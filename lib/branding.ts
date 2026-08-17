@@ -2,15 +2,37 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import { list } from "@vercel/blob";
 
-export type BrandingSlot = "logo" | "hero";
+export const BRANDING_SLOTS = [
+  "logo",
+  "hero",
+  "homeAbout",
+  "projectDefault"
+] as const;
+
+export type BrandingSlot = (typeof BRANDING_SLOTS)[number];
 
 export type Branding = {
   logoUrl: string | null;
   heroUrl: string | null;
+  homeAboutUrl: string | null;
+  projectDefaultUrl: string | null;
   updatedAt: string | null;
 };
 
-const empty: Branding = { logoUrl: null, heroUrl: null, updatedAt: null };
+export const SLOT_FIELDS = {
+  logo: "logoUrl",
+  hero: "heroUrl",
+  homeAbout: "homeAboutUrl",
+  projectDefault: "projectDefaultUrl"
+} as const satisfies Record<BrandingSlot, keyof Branding>;
+
+const empty: Branding = {
+  logoUrl: null,
+  heroUrl: null,
+  homeAboutUrl: null,
+  projectDefaultUrl: null,
+  updatedAt: null
+};
 
 /**
  * On Vercel the filesystem is read-only, so uploads live in Vercel Blob
@@ -49,20 +71,17 @@ async function getBlobBranding(): Promise<Branding> {
             new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
         )[0] ?? null;
 
-    const logo = newest("logo");
-    const hero = newest("hero");
-    const value: Branding = {
-      logoUrl: logo?.url ?? null,
-      heroUrl: hero?.url ?? null,
-      updatedAt: (logo ?? hero)
-        ? new Date(
-            Math.max(
-              logo ? new Date(logo.uploadedAt).getTime() : 0,
-              hero ? new Date(hero.uploadedAt).getTime() : 0
-            )
-          ).toISOString()
-        : null
-    };
+    const value: Branding = { ...empty };
+    let latest = 0;
+    for (const slot of BRANDING_SLOTS) {
+      const blob = newest(slot);
+      value[SLOT_FIELDS[slot]] = blob?.url ?? null;
+      if (blob) {
+        latest = Math.max(latest, new Date(blob.uploadedAt).getTime());
+      }
+    }
+    value.updatedAt = latest ? new Date(latest).toISOString() : null;
+
     cached = { value, at: Date.now() };
     return value;
   } catch {
@@ -77,6 +96,8 @@ function getLocalBranding(): Branding {
     return {
       logoUrl: parsed.logoUrl ?? null,
       heroUrl: parsed.heroUrl ?? null,
+      homeAboutUrl: parsed.homeAboutUrl ?? null,
+      projectDefaultUrl: parsed.projectDefaultUrl ?? null,
       updatedAt: parsed.updatedAt ?? null
     };
   } catch {

@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth";
 import {
   BLOB_PREFIX,
+  BRANDING_SLOTS,
+  SLOT_FIELDS,
   UPLOAD_DIR,
   bustBrandingCache,
   ensureUploadDir,
@@ -24,9 +26,11 @@ const ALLOWED: Record<string, string> = {
   "image/svg+xml": "svg"
 };
 
-const MAX_BYTES: Record<BrandingSlot, number> = {
-  logo: 4 * 1024 * 1024,
-  hero: 8 * 1024 * 1024
+const MAX_MB: Record<BrandingSlot, number> = {
+  logo: 4,
+  hero: 8,
+  homeAbout: 8,
+  projectDefault: 8
 };
 
 export type BrandingResult =
@@ -34,7 +38,7 @@ export type BrandingResult =
   | { success: false; error: string };
 
 function isValidSlot(slot: string): slot is BrandingSlot {
-  return slot === "logo" || slot === "hero";
+  return (BRANDING_SLOTS as readonly string[]).includes(slot);
 }
 
 async function deleteOldBlobs(slot: BrandingSlot, keepUrl?: string) {
@@ -81,9 +85,11 @@ export async function uploadBrandingImage(
   if (!(file instanceof File) || file.size === 0) {
     return { success: false, error: "Choose an image to upload." };
   }
-  if (file.size > MAX_BYTES[slot]) {
-    const maxMb = Math.round(MAX_BYTES[slot] / (1024 * 1024));
-    return { success: false, error: `Image must be ${maxMb} MB or smaller.` };
+  if (file.size > MAX_MB[slot] * 1024 * 1024) {
+    return {
+      success: false,
+      error: `Image must be ${MAX_MB[slot]} MB or smaller.`
+    };
   }
 
   const ext = ALLOWED[file.type];
@@ -109,15 +115,15 @@ export async function uploadBrandingImage(
     const buffer = Buffer.from(await file.arrayBuffer());
     await writeFile(path.join(UPLOAD_DIR, filename), buffer);
 
-    const previousUrl = slot === "logo" ? previous.logoUrl : previous.heroUrl;
+    const previousUrl = previous[SLOT_FIELDS[slot]];
     if (previousUrl && !previousUrl.startsWith(`/uploads/${filename}`)) {
       await removeLocalFile(previousUrl);
     }
 
     const url = `/uploads/${filename}?v=${Date.now()}`;
     saveLocalBranding({
-      logoUrl: slot === "logo" ? url : previous.logoUrl,
-      heroUrl: slot === "hero" ? url : previous.heroUrl,
+      ...previous,
+      [SLOT_FIELDS[slot]]: url,
       updatedAt: new Date().toISOString()
     });
     revalidatePublic();
@@ -148,10 +154,10 @@ export async function removeBrandingImage(slot: string): Promise<BrandingResult>
     }
 
     const previous = await getBranding();
-    await removeLocalFile(slot === "logo" ? previous.logoUrl : previous.heroUrl);
+    await removeLocalFile(previous[SLOT_FIELDS[slot]]);
     saveLocalBranding({
-      logoUrl: slot === "logo" ? null : previous.logoUrl,
-      heroUrl: slot === "hero" ? null : previous.heroUrl,
+      ...previous,
+      [SLOT_FIELDS[slot]]: null,
       updatedAt: new Date().toISOString()
     });
     revalidatePublic();
@@ -160,16 +166,4 @@ export async function removeBrandingImage(slot: string): Promise<BrandingResult>
     console.error(`Branding remove failed (${slot}):`, error);
     return { success: false, error: "Could not remove the image. Try again." };
   }
-}
-
-/** Kept for backwards compatibility with existing imports. */
-export async function uploadSiteLogo(formData: FormData): Promise<BrandingResult> {
-  const file = formData.get("logo") ?? formData.get("file");
-  const forwarded = new FormData();
-  if (file instanceof File) forwarded.set("file", file);
-  return uploadBrandingImage("logo", forwarded);
-}
-
-export async function removeSiteLogo(): Promise<BrandingResult> {
-  return removeBrandingImage("logo");
 }

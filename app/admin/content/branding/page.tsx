@@ -13,10 +13,15 @@ export default async function BrandingPage() {
   return (
     <div>
       <PageHeader
-        title="Logo & branding"
-        description="Upload the official ministry logo and the homepage hero photo. Changes appear on the public website immediately."
+        title="Logo & website images"
+        description="Upload the ministry logo, the homepage hero, the About the Ministry photo and the default project photo. Changes appear on the public website immediately."
       />
-      <BrandingForm logoUrl={branding.logoUrl} heroUrl={branding.heroUrl} />
+      <BrandingForm
+        logoUrl={branding.logoUrl}
+        heroUrl={branding.heroUrl}
+        homeAboutUrl={branding.homeAboutUrl}
+        projectDefaultUrl={branding.projectDefaultUrl}
+      />
     </div>
   );
 }

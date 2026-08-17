@@ -2,6 +2,7 @@
 
 import { ConflictStatus, Prisma } from "@prisma/client";
 import { prisma, withDbRetry } from "@/lib/prisma";
+import { getBranding } from "@/lib/branding";
 import { rememberPublic } from "@/lib/public-cache";
 import { serialize } from "@/lib/serialize";
 import { NIGER_LGAS } from "@/lib/geo/niger-lgas";
@@ -265,7 +266,7 @@ function toPublicProject(row: {
 }
 
 export async function getPublicProjects(): Promise<PublicProject[]> {
-  return rememberPublic(
+  const projects = await rememberPublic(
     "public:projects",
     async () => {
       const rows = await safe(
@@ -291,6 +292,22 @@ export async function getPublicProjects(): Promise<PublicProject[]> {
     },
     FEATURED_PROJECTS
   );
+
+  // Admin-uploaded default photo replaces the stock type-based image on
+  // any project that has no photo of its own.
+  const { projectDefaultUrl } = await getBranding();
+  if (!projectDefaultUrl) return projects;
+  return projects.map((project) => {
+    const stock = projectImageForType(project.typeKey);
+    if (project.image !== stock) return project;
+    return {
+      ...project,
+      image: projectDefaultUrl,
+      gallery: project.gallery.map((url) =>
+        url === stock ? projectDefaultUrl : url
+      )
+    };
+  });
 }
 
 export async function getPublicProject(id: string) {

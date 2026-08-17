@@ -20,10 +20,10 @@ export default async function ContentHomePage() {
             className="block rounded-card border border-gold/20 bg-[#12293F] p-6 hover:border-gold"
           >
             <ImageIcon className="h-6 w-6 text-gold" />
-            <h2 className="mt-3 font-semibold text-white">Logo &amp; homepage images</h2>
+            <h2 className="mt-3 font-semibold text-white">Logo &amp; website images</h2>
             <p className="mt-2 text-sm text-white/65">
-              Upload the ministry logo and the homepage hero photo shown on the
-              public website.
+              Upload the ministry logo, homepage hero, About the Ministry photo
+              and the default project photo.
             </p>
           </Link>
         </li>

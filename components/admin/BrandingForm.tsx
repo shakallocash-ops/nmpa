@@ -6,7 +6,7 @@ import { removeBrandingImage, uploadBrandingImage } from "@/actions/branding";
 import { MinistryMark } from "@/components/public/MinistryMark";
 import { Button } from "@/components/ui/button";
 
-type Slot = "logo" | "hero";
+type Slot = "logo" | "hero" | "homeAbout" | "projectDefault";
 
 function ImageSlotCard({
   slot,
@@ -80,7 +80,7 @@ function ImageSlotCard({
               />
             ) : (
               <p className="px-4 text-center text-sm text-white/50">
-                No custom hero image — the default photo is showing.
+                No custom image — the default photo is showing.
               </p>
             )}
           </div>
@@ -141,10 +141,14 @@ function ImageSlotCard({
 
 export function BrandingForm({
   logoUrl,
-  heroUrl
+  heroUrl,
+  homeAboutUrl,
+  projectDefaultUrl
 }: {
   logoUrl: string | null;
   heroUrl: string | null;
+  homeAboutUrl: string | null;
+  projectDefaultUrl: string | null;
 }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -163,6 +167,22 @@ export function BrandingForm({
         currentUrl={heroUrl}
         savedMessage="Hero image saved. It now appears on the public homepage."
         removedMessage="Custom hero removed. The default photo is showing again."
+      />
+      <ImageSlotCard
+        slot="homeAbout"
+        title="Homepage 'About the Ministry' photo"
+        hint="Upload the photo beside the About the Ministry section (max 8 MB)"
+        currentUrl={homeAboutUrl}
+        savedMessage="Photo saved. It now appears in the About the Ministry section on the homepage."
+        removedMessage="Custom photo removed. The default photo is showing again."
+      />
+      <ImageSlotCard
+        slot="projectDefault"
+        title="Projects default photo"
+        hint="Upload the photo used for project cards that have no photo of their own (max 8 MB)"
+        currentUrl={projectDefaultUrl}
+        savedMessage="Photo saved. Project cards without their own photo now use it."
+        removedMessage="Custom photo removed. Project cards use the default photos again."
       />
     </div>
   );
